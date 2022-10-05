@@ -129,6 +129,19 @@ pagedir_set_page(uint32_t *pd, void *upage, void *kpage, bool writable)
 void *
 pagedir_get_page(uint32_t *pd, const void *uaddr)
 {
+    /* For the bad-ptr test cases. There are 2 conditions to check: 
+     * 
+     * 1. Pointer in the syscall_handler is within PHYS_BASE and 0x0804800
+     * 2. Pointer requested belongs to a page in the VM of the thread
+     * 
+     * Make sure to use pagedir_get_page, pass the ptr to the page dir:
+     * thread_current()->pagedir AND the pointer in question (pd)
+     * 
+     * 2 Outputs:
+     * 
+     * 1. Pointer to the page the pointer passed exists
+     * 2. NULL if the pointer has not been allocated memory for yet
+     */
     uint32_t *pte;
 
     ASSERT(is_user_vaddr(uaddr));

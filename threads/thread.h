@@ -4,6 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <threads/synch.h>
+#include <stdbool.h>
 
 /* States in a thread's life cycle. */
 enum thread_status {
@@ -87,17 +89,60 @@ struct thread {
     uint8_t           *stack;    /* Saved stack pointer. */
     int                priority; /* Priority. */
     struct list_elem   allelem;  /* List element for all threads list. */
+    struct semaphore   sema; //was added
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
 
+    int64_t sleep_ticks; //added by suha
+
+    //added based off of inspo code
+    void *aux;
+
+    int *priority_dt;
+    struct list donors;
+    struct list_elem donor_elem;
+    struct lock *pending_lock;
+    struct list_elem lock_elem;
+
+    int fd_next;
+    struct list files;
+    struct thread *parent;
+    struct list children;
+    struct child_helper *c_h;
+
+    //inspo ends here
+
 #ifdef USERPROG
+    int exit_status;
     /* Owned by userprog/process.c. */
     uint32_t *pagedir; /* Page directory. */
+
+    struct file *bin; //not mine??
 #endif
+
+    //added from inspo
+    unsigned sleep_time;
 
     /* Owned by thread.c. */
     unsigned magic; /* Detects stack overflow. */
+
+    //struct thread* parent; //added by suha
+};
+
+//inspo code
+struct child_helper {
+  tid_t tid;
+  struct thread *child;
+  struct list_elem child_elem;
+  struct semaphore wait_sema;
+  int exit_status;
+};
+
+struct file_helper {
+  int fd;
+  struct list_elem file_elem;
+  struct file *file;
 };
 
 /* If false (default), use round-robin scheduler.
@@ -107,7 +152,7 @@ extern bool thread_mlfqs;
 
 void thread_init(void);
 void thread_start(void);
-void thread_tick(void);
+void thread_tick(int64_t current_ticks); //changed from void to int64_t current_ticks
 void thread_print_stats(void);
 
 typedef void thread_func (void *aux);
@@ -133,3 +178,4 @@ int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
 
 #endif /* threads/thread.h */
+
