@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "*.inc": "c",
+        "interrupt.h": "c",
+        "list.h": "c",
+        "intr-stubs.h": "c",
+        "file.h": "c"
+    }
+}

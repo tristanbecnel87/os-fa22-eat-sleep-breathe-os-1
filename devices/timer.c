@@ -98,9 +98,18 @@ timer_sleep(int64_t ticks)
     int64_t start = timer_ticks();
 
     ASSERT(intr_get_level() == INTR_ON);
+    //change from yield -> block
+    //this avoids busy wait in PintOS
+
+    // thread_current()->sleep_ticks = ticks; // assign requested sleep time to curr thread
+    // enum intr_level old_level = intr_disable(); //disable interrupts to enable blocking
+    // thread_block(); //block current thread
+    // intr_set_level(old_level); //set old interr for no logic crashes
+
     while (timer_elapsed(start) < ticks) {
         thread_yield();
     }
+
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -173,12 +182,31 @@ timer_print_stats(void)
     printf("Timer: %" PRId64 " ticks\n", timer_ticks());
 }
 
+
+/* Function for waking a sleeping thread. It checks whether one 
+ * is being blocked or not. TRUE> check if sleep_ticks == 0 and 
+  * keep decrementing if not. Then, unblock. */
+
+static void wake_threads(struct thread *t, void *aux) {
+    if(t->status == THREAD_BLOCKED) {
+        if(t->sleep_ticks > 0) {
+            t->sleep_ticks--;
+            if(t->sleep_ticks == 0)
+                thread_unblock(t);
+        }
+    }
+}
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt(struct intr_frame *args UNUSED)
 {
     ticks++;
-    thread_tick();
+    thread_tick(timer_ticks());
+
+    //thread_foreach(wake_threads(), 0); 
+    //check each thread with wake_threads() after each tick
+    //assume   interrups are disabled bc timer_interrupt() is an interupt handler
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
