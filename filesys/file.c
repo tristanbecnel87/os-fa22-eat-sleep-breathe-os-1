@@ -4,6 +4,14 @@
 #include "filesys/inode.h"
 #include "threads/malloc.h"
 
+//Checks whether file is writable or not
+bool
+file_writable (struct file *file)
+{
+  ASSERT (file != NULL);
+  return file->deny_write;
+}
+
 /* Opens a file for the given INODE, of which it takes ownership,
  * and returns the new file.  Returns a null pointer if an
  * allocation fails or if INODE is null. */

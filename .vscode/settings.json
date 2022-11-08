@@ -5,6 +5,9 @@
         "interrupt.h": "c",
         "list.h": "c",
         "intr-stubs.h": "c",
-        "file.h": "c"
+        "file.h": "c",
+        "thread.h": "c",
+        "synch.h": "c",
+        "palloc.h": "c"
     }
 }
