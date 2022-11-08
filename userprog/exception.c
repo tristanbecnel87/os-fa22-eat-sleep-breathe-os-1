@@ -206,6 +206,8 @@ page_fault (struct intr_frame *f)
       f->eip = (void *) f->eax;
       f->eax = 0xffffffff;
 
+      exit(-1);
+
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
