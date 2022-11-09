@@ -1,6 +1,3 @@
-// static int sys_wait (pid_t pid);
-// static pid_t sys_exec (const char *input);
-
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <list.h>
@@ -77,8 +74,6 @@ static void syscall_handler (struct intr_frame *f UNUSED)
 		 }
 		case SYS_EXIT:
 		 {
-		 	// get_arguments_from_stack(f, &arg[0], 1);
-		 	// f->eax = arg[0];
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
 		 	exit(args[0]);
 		 	break;
@@ -86,28 +81,24 @@ static void syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_WAIT:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack(f, &arg[0], 1);
 		 	f->eax = wait (args[0]);
 		 	break;
 		 }
 		case SYS_CREATE:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * 2);
-		 	// get_arguments_from_stack(f, &arg[0], 2);
 		 	f->eax = create ((const char *)args[0], (unsigned) args[1]);
 		 	break;
 		 }
 		case SYS_REMOVE:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack(f, &arg[0], 1);
 		 	f->eax = remove ((const char *) args[0]);
 		 	break;	
 		 }
 		case SYS_READ:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * 3);
-		 	// get_arguments_from_stack (f, &arg[0], 3);
 		 	f->eax = read (args[0], (void *) args[1], (unsigned) args[2]);
 		 	break;
 		 }
@@ -117,34 +108,28 @@ static void syscall_handler (struct intr_frame *f UNUSED)
 			void* buffer = (void*)(*((int*)f->esp+2));
 			unsigned size = *((unsigned*)f->esp+3);
 			f->eax = write (fd, buffer, size);
-		 	// get_arguments_from_stack (f, &arg[0], 3);
-		 	// f->eax = write ((int) arg[0], (const void*)arg[1], (unsigned) arg[2]);
 		 	break;
 		 }
 		case SYS_OPEN:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack (f, &arg[0], 1);
 		 	f->eax = open ((const char *)args[0]);
 		 	break;
 		 }
 		case SYS_FILESIZE:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack (f, &arg[0], 1);
 		 	f->eax = filesize (args[0]);
 		 	break;
 		 }   
 		case SYS_SEEK:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * 2);
-		 	// get_arguments_from_stack (f, &arg[0], 2);
 		 	seek (args[0], (unsigned) args[1]);
 		 	break;
 		 } 
 		case SYS_TELL:
 		 {
-		 	// get_arguments_from_stack (f, &arg[0], 1);
 		 	copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
 			f->eax = tell (args[0]);
 		 	break;
@@ -152,14 +137,12 @@ static void syscall_handler (struct intr_frame *f UNUSED)
 		case SYS_EXEC:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack(f, &arg[0], 1);
 		 	f->eax = exec ((const char*)args[0]);
 		 	break;
 		 } 
 		case SYS_CLOSE:
 		 {
 			copy_in (args, (uint32_t *) f->esp + 1, sizeof *args);
-		 	// get_arguments_from_stack (f, &arg[0], 1);
 		 	close(args[0]);
 		 	break;
 		 } 
@@ -231,7 +214,6 @@ get_user (uint8_t *dst, const uint8_t *usrc)
 // list of files owned
 struct file* get_file_handle (int file_desc)
 {
-	//printf("file handle 1\n");
    struct list_elem *e = list_begin (&thread_current()->files_owned_list);
    struct list_elem *next;
    while (e != list_end (&thread_current()->files_owned_list))
@@ -266,8 +248,6 @@ int read (int fd, void *buf, unsigned length)
 	if(length <= 0)
 		return 0;
 
-	//const void *esp = (const void *)esp_value;
-
         int ret = 0; 
 	if (fd == 0)
 	{
@@ -275,8 +255,6 @@ int read (int fd, void *buf, unsigned length)
 		for (iter = 0; iter < length; iter++)
 		{
 			input_getc();
-		 	//*(buf++) = input_getc();
-		 		//return s; 
 		}
 		return length;
 	}
@@ -293,134 +271,33 @@ int read (int fd, void *buf, unsigned length)
 	int bytes_read = file_read(file_ptr, buf, length);
 	lock_release(&file_lock);
 	return bytes_read;
-	// else
-    //     {
-    //       /* We read into the buffer one page at a time. Before the actual 
-    //          read we need to make sure the page it's loaded and pin it's 
-    //          underlying frame. We have to prevent a page fault while a device
-    //          driver access a user driver. Loading one page at a time protects
-    //          the OS from malicious programs that could try to pin all the 
-    //          frames at a give n time. */
-
-    //       size_t rem = length;
-    //       void *tmp_buffer = (void *)buf;
-
-    //       ret = 0;
-    //       while (rem > 0)
-    //         {
-    //           /* Round down the buffer address to a page and try to find a
-    //              static page. If we don't find the page we migth have stack
-    //              growth. If we find the page we only need to load if is not
-    //              present in memory. */
-    //           size_t ofs = tmp_buffer - pg_round_down (tmp_buffer);
-    //           struct struct_page *page = vm_find_page_in_supplemental_table (tmp_buffer - ofs);
-              
-    //           if (page == NULL && is_stack_access_vaid (esp, tmp_buffer) )
-    //             page = vm_add_zeroed_page_on_stack (tmp_buffer - ofs, true);   
-    //           else if (page == NULL)
-    //             exit (-1);
-
-    //           /* Load the page and pin the frame. */
-    //           if ( !page->is_page_loaded )
-    //             vm_load_new_page (page, true);
-
-    //           size_t read_bytes = ofs + rem > PGSIZE ?
-    //                               rem - (ofs + rem - PGSIZE) : rem;
-    //           lock_acquire (&file_lock);
-
-    //           ASSERT (page->is_page_loaded);
-    //           ret += file_read (file_ptr, tmp_buffer, read_bytes);
-    //           lock_release (&file_lock);              
-
-    //           rem -= read_bytes;
-    //           tmp_buffer += read_bytes;
-
-    //           /* Unpin the frame after we are done. */
-    //           unpin (page->frame_page);
-    //         }
-	// }
-	// //off_t bytes_read = file_read (file_ptr, buf, s);
-	// //lock_release (&file_lock);
-	// //return bytes_read;
-    //     return ret;
 }
 
 int write (int fd, const void *buffer, unsigned length)
 {
 	const void *esp = (const void *)esp_value;
-	// const void *esp = (const void *)esp_value;
-	// //printf("write 1\n");
 
         int ret = 0;
 	if (fd == 1)
 	 {
 		putbuf(buffer, length);
 		return length;
-	 	// int left = size;
-	 	// while (left > 128)
-	 	// 	 {
-	 	// 	 	putbuf (buffer, 128);
-	 	// 	 	buffer = (const char *)buffer + 128;
-	 	// 	 	left = left - 128;
 
-	 	// 	 }
-	 	// putbuf (buffer, left);
-	 	// return size;
 	 }
 
 	lock_acquire(&file_lock); 
 	struct file *file_ptr = get_file_handle (fd);
 	
-	 //if lock doesn't acquired then return
 	if (!file_ptr)
 	{
 		lock_release(&file_lock);
 		return 0;
-	 	//exit (-1);
 	}
 	if (!(buffer < PHYS_BASE && pagedir_get_page (thread_current ()->pagedir, buffer) != NULL))
     	exit(-1);
 	int bytes_written = file_write(file_ptr, buffer, length);
 	lock_release(&file_lock);
 	return bytes_written;
-	//  else {
-	//  size_t rem = length;
-	//  void *tmp_buffer = (void *)buffer;
-	//  ret = 0;
-	//  while (rem > 0)
-	//   {
-	//   	//page loading
-	//   	size_t ofs = tmp_buffer - pg_round_down (tmp_buffer);
-	//   	struct struct_page *page = vm_find_page_in_supplemental_table (tmp_buffer - ofs);
-
-	//   	if (page == NULL && is_stack_access_vaid (esp, tmp_buffer))
-	//   	 {
-	//   	 	page = vm_add_zeroed_page_on_stack (tmp_buffer - ofs, true);
-	//   	 }
-	//   	 else if (page == NULL)
-	//   	 	exit (-1);
-
-	//   	 if (!page->is_page_loaded)
-	//   	  {
-	//   	  	vm_load_new_page (page, true);
-	//   	  }
-	//   	  size_t write_bytes = ofs + rem > PGSIZE ?
-	//   	  		rem - (ofs + rem - PGSIZE) : rem;
-
-	//   	  lock_acquire (&file_lock);
-	//   	  ASSERT (page->is_page_loaded);
-	//   	  ret += file_write (file_ptr, tmp_buffer, write_bytes);		
-	//   	  lock_release (&file_lock);
-
-	//   	  rem -= write_bytes;
-	//   	  tmp_buffer += write_bytes;
-	//   	  unpin (page->frame_page);
-
-	//   }	 
-	
-	//  }
-
-	//  return ret;	 
 }
 
 //create sys call, calls file_create sys call
@@ -462,11 +339,11 @@ int open (const char *file)
 		 	return -1;
 		 }
 	file_ptr->file_desc = thread_current ()->file_desc;
-	//so that on opening twice it gives diff fd
+
 	thread_current ()->file_desc++; 
 	file_ptr->file = handle;
 	list_push_back (&thread_current ()->files_owned_list , &file_ptr->elem);
-	//check for file name with thread name for rox-* tests
+
 	if (strcmp (file, thread_current ()->name) == 0)
 	 {
 	 	file_deny_write (handle);

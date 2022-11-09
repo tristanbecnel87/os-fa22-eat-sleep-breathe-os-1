@@ -123,7 +123,6 @@ struct thread
    int file_desc; //file discriptor
    
    bool load_status;
-    //this is to pass sys_exe
    int ret_status;
 
    bool child_create_error;

@@ -141,24 +141,6 @@ find_frame (void *pg)
 
 }
 
-//------
-/*
-//Maps User virtual page to frame of vm by help of pte
-bool
-upage_to_frame_mapping (void *frame, uint32_t *pte, void *vaddr)
-{
-	struct struct_frame *sf = find_frame (frame);
-	if (sf == NULL)
-	 {
-	 	return false;
-	 }
-	 sf->pte = pte;
-	 sf->vaddr = vaddr;
-	 return true;
-}
-*/
-//------
-
 //Adds frame to Hash by allocating memory
 static bool
 add_frame (void *pg)

@@ -28,25 +28,18 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp,
 static int set_up_user_prog_stack (void **esp, char **save_ptr, char *token);
 static bool install_page (void *upage, void *kpage, bool writable);
 //struct lock file_lock;
-/* Starts a new thread running a user program loaded from
-   FILENAME.  The new thread may be scheduled (and may even exit)
-   before process_execute() returns.  Returns the new process's
-   thread id, or TID_ERROR if the thread cannot be created. */
+
 tid_t
 process_execute (const char *file_name) 
 {
   char *fn_copy;
   tid_t tid;
-  //printf("\nprocess executing..... %s\n", file_name);
-  /* Make a copy of FILE_NAME.
-     Otherwise there's a race between the caller and load(). */
+
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  //Get file name only without arguments
-  
   int i;
   char * name = (char *) malloc (sizeof (char));
   for (i = 0; i < (int) strlen (file_name); i++)
@@ -59,33 +52,22 @@ process_execute (const char *file_name)
    }
    name[i] = '\0';
 
-   //printf("\ncreating thread....\n");
-   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (name, PRI_DEFAULT, start_process, fn_copy);
-  //1.get child thread. 2. pass in child sema. 3. check if child load success  
-  //printf("\n thread_created.... %d\n", tid);
+
   if ((int)tid == TID_ERROR)
    {
     palloc_free_page (fn_copy);
    }
   else 
    {
-    //printf("\n in else part\n");
     enum intr_level old_level = intr_disable();
-    //printf("\n blocking thread....\n");
     thread_block();
-    //struct thread *t = thread_by_tid(tid);
-    //struct child_thread_data *ct = thread_get_child_data(thread_current(), tid);
-    //sema_down(&ct->s);
-    //printf("\ncurrent thread after block: %d %s\n", thread_current()->tid, thread_current()->name);
-    //printf("\nblocked.....\n");
+
     intr_set_level(old_level);
     if (thread_current()->child_create_error){
       tid = TID_ERROR;
-      // printf("\nTID_ERROR\n");
     }
    }
-   //printf("\nreturning tid..... %d\n", tid);
    return tid;  
 }
 
@@ -98,13 +80,9 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-
-  //Get file name only without arguments
-  //call to strtok_r gives us first token here, which is file name
   char *fp;
   file_name = strtok_r(file_name, " ", &fp);
 
-  //printf("\nstart process %s\n", file_name);
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -123,30 +101,17 @@ start_process (void *file_name_)
   if (!success)
   {
     
-    //printf("\nsuccess not done\n");
     palloc_free_page (file_name);
     thread_unblock (parent);
-    //sema_up(&(thread_get_child_data (parent, thread_current()->tid))->s);
-    //printf("\ncalling thread_exit....\n");
     thread_exit ();
   }
   else
   {
-    //printf("\n settign up\n");
     set_up_user_prog_stack (&if_.esp, &fp, file_name);
-    //printf("\nsetup done\n");
     /* Command successfully started. Put the arguments in the stack. */
-   // parse_args_onto_stack(&if_.esp, command);
     palloc_free_page (file_name);
-    //printf("\n unvlocking thread....\n");
     thread_unblock (parent);
-    //sema_up(&(thread_get_child_data (parent, thread_current()->tid))->s);
-    //sema_up(&thread_current()->s);
-    //printf("\nunblocked..\n");
   }
-  
-  //1.if success sema up, wake up the parent waiting thread.
-  //2.pass back some indicator back to parent.
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -233,9 +198,7 @@ set_up_user_prog_stack (void **esp, char **save_ptr, char* token) {
 int
 process_wait (tid_t child_tid) 
 {
-//printf("\nprocess wait...\n");
 #ifdef USERPROG
-  //printf("\n thread %s %d waiting for child_tid %d\n", thread_current()->name, thread_current()->tid, child_tid);
   struct thread * this_thread = thread_current();
 
   enum intr_level old_level = intr_disable ();
@@ -243,20 +206,16 @@ process_wait (tid_t child_tid)
   struct child_thread_data * child_data = thread_get_child_data (this_thread, child_tid);
   if (child_data == NULL)
   {
-    //printf("\nchild data null\n");
     intr_set_level (old_level);
     return -1;
   }
 
   struct thread * child = thread_by_tid(child_tid);
 
-  //printf("\ncheck child\n");
   if (child != NULL)
   {
-    //printf("\nsema down.....\n");
     sema_down(&child_data->s);
   }
-  //printf("\n run parent again...\n");
 
   int retval = child_data->exit_status;
   list_remove (&child_data->elem);
@@ -266,7 +225,6 @@ process_wait (tid_t child_tid)
 
 #else
   /* In case USERPROG was not defined (you can ignore/not implement this part). */
-  //printf("\n not a user prog...\n");
   return -1;
 #endif
 }
@@ -300,13 +258,10 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-//printf("\ncall sema up....\n");
-// As exiting we do sema up
 struct child_thread_data *ct = thread_get_child_data (cur->parent, cur->tid);
 while(!list_empty(&ct->s.waiters))
 	sema_up(&ct->s);
 
-//printf("\nsema up done...\n");
 }
 
 /* Sets up the CPU for running user code in the current
@@ -324,7 +279,7 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
-
+
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -502,7 +457,6 @@ load (const char *file_name, void (**eip) (void), void **esp,
   /* Set up stack. */
     //passing file stack pointer, file name, and pointer to name
   if (!setup_stack (esp, file_name, fp)){
-    	//printf("\nsetup_failed....\n");
 	goto done;
   }
 
@@ -516,10 +470,8 @@ load (const char *file_name, void (**eip) (void), void **esp,
   file_close (file);
   return success;
 }
-
-/* load() helpers. */
 
-//static bool install_page (void *upage, void *kpage, bool writable);
+
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -562,100 +514,8 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
   if (phdr->p_vaddr < PGSIZE)
     return false;
 
-  /* It's okay. */
   return true;
 }
-
-/* Loads a segment starting at offset OFS in FILE at address
-   UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
-   memory are initialized, as follows:
-        - READ_BYTES bytes at UPAGE must be read from FILE
-          starting at offset OFS.
-        - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
-   The pages initialized by this function must be writable by the
-   user process if WRITABLE is true, read-only otherwise.
-   Return true if successful, false if a memory allocation error
-   or disk read error occurs. */
-/*
-static bool
-load_segment (struct file *file, off_t ofs, uint8_t *upage,
-              uint32_t read_bytes, uint32_t zero_bytes, bool writable) 
-{
-  printf("\nin load segment.....\n");
-  ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
-  ASSERT (pg_ofs (upage) == 0);
-  ASSERT (ofs % PGSIZE == 0);
-  printf("\nassertions passed\n");
-  //file_seek (file, ofs);
-  off_t file_ofs = ofs;
-  while (read_bytes > 0 || zero_bytes > 0) 
-    {
-      / * Calculate how to fill this page.
-         We will read PAGE_READ_BYTES bytes from FILE
-         and zero the final PAGE_ZERO_BYTES bytes. * /
-      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
-      size_t page_zero_bytes = PGSIZE - page_read_bytes;
-      //-------------
-      off_t block_id = -1;
-      // ************ Add code for sharing frames ********
-      //-------------
-      printf("\n writable: %d\n", writable);      
-      if (writable == false){
-        printf("\ncalling inode..\n");
-        block_id = inode_get_block_number (file_get_inode (file), file_ofs);
-        printf("\ninode done..\n");
-      }
-      struct struct_page *page = NULL;
-      printf("\ncall add_new_page...\n");
-      page = vm_add_new_page (upage, file, file_ofs, page_read_bytes,
-                              page_zero_bytes, writable, block_id);
-      printf("\nnew page done..\n");
-      if (page == NULL)
-       {
-	printf("\nreturning false...\n");
-        return false;
-       }
-      / * Get a page of memory. * /
-      //-------
-      //uint8_t *kpage = palloc_get_page (PAL_USER);
-      uint8_t *kpage = get_frame (PAL_USER);
-      if (kpage == NULL)
-        return false;
-      / * Load this page. * /
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          //----
-          //palloc_free_page (kpage);
-          free_vm_frames (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-      / * Add the page to the process's address space. * /
-      if (!install_page (upage, kpage, writable)) 
-        {
-          //---------
-          //palloc_free_page (kpage);
-          free_vm_frames (kpage);
-          return false; 
-        }
-        struct struct_frame *frame_page = NULL;
-        frame_page = vm_add_new_page(upage, file, ofs, read_bytes,
-          zero_bytes, writable, block_id);
-        if(frame_page == NULL){
-          free_vm_frames(frame_page);
-          return false;
-        }
-      / * Advance. * /
-      read_bytes -= page_read_bytes;
-      zero_bytes -= page_zero_bytes;
-      upage += PGSIZE;
-      file_ofs +=PGSIZE;
-    }
-    file_seek(file, ofs);
-  printf("\nreturning true..\n");
-  return true;
-}
-*/
 
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
@@ -708,110 +568,18 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp, const char *file_name, char **save_ptr) 
 {
- //printf("\nsetting up stack\n");
-//mapping zeroed page
   struct struct_page *page = NULL;
- // printf("add zeroed page....\n");
   page = vm_add_new_zeroed_page ( ((uint8_t *) PHYS_BASE) - PGSIZE, true );
-  //printf("done done....\n");
   if (page == NULL)
    {
     return false;
    }
    *esp = PHYS_BASE;
-  //printf("\nloading new page.....\n");
   vm_load_new_page (page, false);
-  //printf("\n loaded....\n");
 
   uint8_t *kpage;
   return true;
-  /*
-  bool success = true;
-//--------
-  / *
-  //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = get_frame (PAL_USER | PAL_ZERO);
-  if (kpage != NULL) 
-    {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-      {
-        //-----------
-        //palloc_free_page (kpage);
-        free_vm_frames (kpage);
-      }
-    }
-    * /
-  //----------
-  printf("\nsetting actual stack\n");
-  const void *user_stack_bottom = *esp - PGSIZE;
-  char *token;
-  int length_token = 0;
- 
-  int arg_count = 0;
- 
-  char *start = NULL;
-  char *actual_arg = NULL;
-  start = *esp;
-  for(token = (char *) file_name; token != NULL; token = strtok_r(NULL, " ", save_ptr)){
- 
-  arg_count++;
-  length_token = strlen(token) + 1;
-        *esp -= length_token;
-        if(*esp < user_stack_bottom)
-	  return false;
-        memcpy(*esp, token, length_token);
- 
-  }
- 
-  actual_arg = *esp;
-  int *align = (int *)0;
-  int word_align = (size_t)*esp % 4;
-  if(word_align > 0) {
-    *esp -= word_align;
-    if(*esp < user_stack_bottom)
-	  return false;
-    memcpy(*esp, &align, word_align);     
-  }
-   
-  //NULL characater
-  *esp -= sizeof(char *);
-  if(*esp < user_stack_bottom)
-	  return false;
-   memcpy(*esp, &align, sizeof(char *));
-  
-  while(actual_arg != start)
-  {
-        if(*(actual_arg - 1)== '\0' && actual_arg + 1 != start)
-        {  
-          *esp -= sizeof(char *);
-          if(*esp < user_stack_bottom)
-	    return false;
-          memcpy(*esp, &actual_arg, sizeof(char *));
-        }
-      actual_arg +=1;
-  }
-  char *arg_address = NULL;
-  arg_address = *esp;
-  *esp -= sizeof(char **);
-  if(*esp < user_stack_bottom)
-	return false;
-  memcpy(*esp, &arg_address, sizeof(char **));
-  *esp -= sizeof(int);
-  if(*esp < user_stack_bottom)
-	return false;
-  memcpy(*esp, &arg_count, sizeof(int));   
-  *esp -= sizeof(void *);
-  if(*esp < user_stack_bottom)
-	  return false;
-  memcpy(*esp, &align, sizeof(void *));
-  
-  return success;
-  */
-}
-
+ }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
