@@ -378,7 +378,6 @@ thread_exit (void)
   schedule ();
   
   NOT_REACHED ();
-  //printf("Exit ends..\n");
 }
 
 /* Yields the CPU.  The current thread is not put to sleep and
@@ -475,7 +474,7 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
   return 0;
 }
-
+
 /* Idle thread.  Executes when no other thread is ready to run.
    The idle thread is initially put on the ready list by
    thread_start().  It will be scheduled once initially, at which
@@ -522,7 +521,7 @@ kernel_thread (thread_func *function, void *aux)
   printf("\nexiting from kernel....\n");
   thread_exit ();       /* If function() returns, kill the thread. */
 }
-
+
 /* Returns the running thread. */
 struct thread *
 running_thread (void) 
@@ -719,7 +718,7 @@ allocate_tid (void)
 
   return tid;
 }
-
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
