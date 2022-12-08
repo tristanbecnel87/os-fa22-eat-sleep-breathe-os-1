@@ -36,13 +36,14 @@ fsutil_ls(char **argv UNUSED)
 void
 fsutil_cat(char **argv)
 {
+    struct dir *block = NULL;
     const char *file_name = argv[1];
 
     struct file *file;
     char *buffer;
 
     printf("Printing '%s' to the console...\n", file_name);
-    file = filesys_open(file_name);
+    file = filesys_open(file_name, false, block);
     if (file == NULL) {
         PANIC("%s: open failed", file_name);
     }
@@ -64,10 +65,11 @@ fsutil_cat(char **argv)
 void
 fsutil_rm(char **argv)
 {
+    struct dir *block = NULL;
     const char *file_name = argv[1];
 
     printf("Deleting '%s'...\n", file_name);
-    if (!filesys_remove(file_name)) {
+    if (!filesys_remove(file_name, false, block)) {
         PANIC("%s: delete failed\n", file_name);
     }
 }
@@ -77,6 +79,7 @@ fsutil_rm(char **argv)
 void
 fsutil_extract(char **argv UNUSED)
 {
+    struct dir* block = NULL;
     static block_sector_t sector = 0;
 
     struct block *src;
@@ -104,6 +107,7 @@ fsutil_extract(char **argv UNUSED)
         enum ustar_type type;
         int size;
 
+
         /* Read and parse ustar header. */
         block_read(src, sector++, header);
         error = ustar_parse_header(header, &file_name, &type, &size);
@@ -122,10 +126,11 @@ fsutil_extract(char **argv UNUSED)
             printf("Putting '%s' into the file system...\n", file_name);
 
             /* Create destination file. */
-            if (!filesys_create(file_name, size)) {
+            if (!filesys_create(file_name, size, false, block)) {
                 PANIC("%s: create failed", file_name);
             }
-            dst = filesys_open(file_name);
+            
+            dst = filesys_open(file_name, false, block);
             if (dst == NULL) {
                 PANIC("%s: open failed", file_name);
             }
@@ -172,6 +177,7 @@ fsutil_extract(char **argv UNUSED)
 void
 fsutil_append(char **argv)
 {
+    struct dir *block = NULL;
     static block_sector_t sector = 0;
 
     const char *file_name = argv[1];
@@ -189,7 +195,7 @@ fsutil_append(char **argv)
     }
 
     /* Open source file. */
-    src = filesys_open(file_name);
+    src = filesys_open(file_name, false, block);
     if (src == NULL) {
         PANIC("%s: open failed", file_name);
     }

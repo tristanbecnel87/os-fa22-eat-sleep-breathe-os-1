@@ -4,8 +4,11 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include <threads/synch.h>
-#include <stdbool.h>
+
+#include "filesys/file.h"
+#include "threads/synch.h"
+
+struct lock filesys_lock;
 
 /* States in a thread's life cycle. */
 enum thread_status {
@@ -81,68 +84,45 @@ typedef int tid_t;
  * only because they are mutually exclusive: only a thread in the
  * ready state is on the run queue, whereas only a thread in the
  * blocked state is on a semaphore wait list. */
+struct file_desc {
+    int                fd;
+    struct file       *file;
+    bool               directory;
+    struct list_elem   elem;
+};
+
 struct thread {
     /* Owned by thread.c. */
     tid_t              tid;      /* Thread identifier. */
     enum thread_status status;   /* Thread state. */
     char               name[16]; /* Name (for debugging purposes). */
     uint8_t           *stack;    /* Saved stack pointer. */
+    int                fd;
     int                priority; /* Priority. */
     struct list_elem   allelem;  /* List element for all threads list. */
-    struct semaphore   sema; //was added
+    char              *instruction;
+    char              *directory;
+    struct list        fds;
+    
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
 
-    int64_t sleep_ticks; //added by suha
-
-    //added based off of inspo code
-    void *aux;
-
-    int *priority_dt;
-    struct list donors;
-    struct list_elem donor_elem;
-    struct lock *pending_lock;
-    struct list_elem lock_elem;
-
-    int fd_next;
-    struct list files;
-    struct thread *parent;
-    struct list children;
-    struct child_helper *c_h;
-
-    //inspo ends here
-
 #ifdef USERPROG
-    int exit_status;
     /* Owned by userprog/process.c. */
     uint32_t *pagedir; /* Page directory. */
 
-    struct file *bin; //not mine??
 #endif
-
-    //added from inspo
-    unsigned sleep_time;
 
     /* Owned by thread.c. */
     unsigned magic; /* Detects stack overflow. */
-
-    //struct thread* parent; //added by suha
-};
-
-//inspo code
-struct child_helper {
-  tid_t tid;
-  struct thread *child;
-  struct list_elem child_elem;
-  struct semaphore wait_sema;
-  int exit_status;
-};
-
-struct file_helper {
-  int fd;
-  struct list_elem file_elem;
-  struct file *file;
+    struct semaphore load;         
+    struct semaphore wait;         
+    struct semaphore stop;   
+    struct list inheritors;
+    struct list_elem inheritorelem; 
+    int status_stop;  
+    int status_load;
 };
 
 /* If false (default), use round-robin scheduler.
@@ -152,8 +132,9 @@ extern bool thread_mlfqs;
 
 void thread_init(void);
 void thread_start(void);
-void thread_tick(int64_t current_ticks); //changed from void to int64_t current_ticks
+void thread_tick(void);
 void thread_print_stats(void);
+struct thread *get_thread (tid_t);
 
 typedef void thread_func (void *aux);
 tid_t thread_create(const char *name, int priority, thread_func *, void *);
@@ -178,4 +159,3 @@ int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
 
 #endif /* threads/thread.h */
-

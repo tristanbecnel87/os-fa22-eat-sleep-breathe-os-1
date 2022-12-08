@@ -1,5 +1,3 @@
-// 8 lines added
-
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -7,9 +5,8 @@
 #include "threads/thread.h"
 #include "userprog/exception.h"
 #include "userprog/gdt.h"
-#include "userprog/syscall.h"
-#include "threads/vaddr.h"
 #include "userprog/pagedir.h"
+#include "threads/vaddr.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -32,7 +29,18 @@ static void page_fault(struct intr_frame *);
  *
  * Refer to [IA32-v3a] section 5.15 "Exception and Interrupt
  * Reference" for a description of each of these exceptions. */
-void exception_init(void)
+
+/* Returns true if UADDR is a valid, mapped user address,
+   false otherwise. */
+bool
+verify_user(const void *uaddr)
+{
+    return (uaddr < PHYS_BASE && pagedir_get_page(thread_current()->pagedir, uaddr) != NULL);
+}
+
+
+void
+exception_init(void)
 {
     /* These exceptions can be raised explicitly by a user program,
      * e.g. via the INT, INT3, INTO, and BOUND instructions.  Thus,
@@ -46,10 +54,10 @@ void exception_init(void)
      * invoking them via the INT instruction.  They can still be
      * caused indirectly, e.g. #DE can be caused by dividing by
      * 0.  */
-    intr_register_int(0, 0, INTR_ON, kill, "#DE Divide Error");
-    intr_register_int(1, 0, INTR_ON, kill, "#DB Debug Exception");
-    intr_register_int(6, 0, INTR_ON, kill, "#UD Invalid Opcode Exception");
-    intr_register_int(7, 0, INTR_ON, kill, "#NM Device Not Available Exception");
+    intr_register_int(0,  0, INTR_ON, kill, "#DE Divide Error");
+    intr_register_int(1,  0, INTR_ON, kill, "#DB Debug Exception");
+    intr_register_int(6,  0, INTR_ON, kill, "#UD Invalid Opcode Exception");
+    intr_register_int(7,  0, INTR_ON, kill, "#NM Device Not Available Exception");
     intr_register_int(11, 0, INTR_ON, kill, "#NP Segment Not Present");
     intr_register_int(12, 0, INTR_ON, kill, "#SS Stack Fault Exception");
     intr_register_int(13, 0, INTR_ON, kill, "#GP General Protection Exception");
@@ -63,7 +71,8 @@ void exception_init(void)
 }
 
 /* Prints exception statistics. */
-void exception_print_stats(void)
+void
+exception_print_stats(void)
 {
     printf("Exception: %lld page faults\n", page_fault_cnt);
 }
@@ -82,8 +91,7 @@ kill(struct intr_frame *f)
 
     /* The interrupt frame's code segment value tells us where the
      * exception originated. */
-    switch (f->cs)
-    {
+    switch (f->cs) {
     case SEL_UCSEG:
         /* User's code segment, so it's a user exception, as we
          * expected.  Kill the user process.  */
@@ -135,12 +143,17 @@ page_fault(struct intr_frame *f)
      * See [IA32-v2a] "MOV--Move to/from Control Registers" and
      * [IA32-v3a] 5.15 "Interrupt 14--Page Fault Exception
      * (#PF)". */
-    asm("movl %%cr2, %0"
-        : "=r"(fault_addr));
+    asm ("movl %%cr2, %0" : "=r" (fault_addr));
 
-    /* Turn interrupts back on (they were only off so that we could
+      /* Turn interrupts back on (they were only off so that we could
      * be assured of reading CR2 before it changed). */
     intr_enable();
+
+    if(!verify_user(fault_addr)){
+        thread_exit();
+    }
+
+  
 
     /* Count page faults. */
     page_fault_cnt++;
@@ -150,39 +163,13 @@ page_fault(struct intr_frame *f)
     write = (f->error_code & PF_W) != 0;
     user = (f->error_code & PF_U) != 0;
 
-    // eax->eip
-    // eat<-0xffffffff
-
     /* To implement virtual memory, delete the rest of the function
      * body, and replace it with code that brings in the page to
      * which fault_addr refers. */
-
-    struct thread *curr = thread_current();
-    void *fault_page = (void *)pg_round_down(fault_addr);
-    //curr->status = 3;
-
-
-    //// printf("hehe");
-    // f->eip = (void *)f->eax;
-    // f->eax = 0xffffffff;
-    // exit(-1);
-
-    //if(!not_present) {
-        exit(-1);
-    //}
-    //     if(!user) {
-    //         f->eip = (void *)f->eax;
-    //         f->eax = 0xffffffff;
-    //         printf("heh");
-    //         syscall_init();
-    //     }
-    // }
-   // return;
-
     printf("Page fault at %p: %s error %s page in %s context.\n",
            fault_addr,
            not_present ? "not present" : "rights violation",
            write ? "writing" : "reading",
            user ? "user" : "kernel");
-   kill(f);
+    kill(f);
 }

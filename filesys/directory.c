@@ -12,7 +12,7 @@
 bool
 dir_create(block_sector_t sector, size_t entry_cnt)
 {
-    return inode_create(sector, entry_cnt * sizeof(struct dir_entry));
+    return inode_create(sector, entry_cnt * sizeof(struct dir_entry),true);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -177,7 +177,7 @@ dir_remove(struct dir *dir, const char *name)
     struct dir_entry e;
     struct inode *inode = NULL;
     bool success = false;
-    off_t ofs;
+    off_t ofs, i = 0;
 
     ASSERT(dir != NULL);
     ASSERT(name != NULL);
@@ -191,6 +191,17 @@ dir_remove(struct dir *dir, const char *name)
     inode = inode_open(e.inode_sector);
     if (inode == NULL) {
         goto done;
+    }
+
+    if((int)inode->data.directory){
+        if((int)inode->open_cnt > 1){
+            goto done;
+        }
+        for(; inode_read_at(inode, &e, sizeof e, i) == sizeof(e); i+=sizeof(e)){
+            if(e.in_use){
+                goto done;
+            }
+        }
     }
 
     /* Erase directory entry. */

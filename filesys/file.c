@@ -156,3 +156,15 @@ file_tell(struct file *file)
     ASSERT(file != NULL);
     return file->pos;
 }
+
+//checks if file is ordinary of directory
+bool file_isdir(struct file *f){
+    ASSERT(f != NULL);
+    return (int)f->inode->data.directory;
+}
+
+//checks for inode number
+int file_inumber(struct file *f){
+    ASSERT(f != NULL);
+    return (int)f->inode->sector;
+}
