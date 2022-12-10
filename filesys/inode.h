@@ -11,8 +11,6 @@
 #define DIRECT 98
 #define INDIRECT 26
 #define INDIRECT_MAX (INDIRECT*128 + DIRECT)
-#define INODE_MAX (128*128 + INDIRECT_MAX)
-#define MAX_SECTORS 16000
 
 struct bitmap;
 
