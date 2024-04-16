@@ -1,7 +1,7 @@
 Pintos
 ======
 
-Pintos labs for EE 461S at UT Austin.
+Pintos is a semester-long project where the main objective is creating a baby operating system in C. We implemented User Programs, Virtual Memory, and File Systems using GitHub and their VCS. Detailed below is installation instructions on how to get started creating your very own operating system!
 
 ### About
 
